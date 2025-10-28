@@ -1,22 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 export default function ScannerPage() {
   const [scanning, setScanning] = useState(false);
-  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [sessionScans, setSessionScans] = useState(0);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
+    // Cleanup on unmount
     return () => {
-      if (html5QrCode && scanning) {
-        html5QrCode.stop().catch(console.error);
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(console.error);
       }
     };
-  }, [html5QrCode, scanning]);
+  }, []);
 
   const showMessage = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
     setMessage(msg);
@@ -40,7 +41,7 @@ export default function ScannerPage() {
 
       if (data.success) {
         setSessionScans((prev) => prev + 1);
-        showMessage(`保存成功: ${barcode}`, 'success');
+        showMessage(`✅ 保存成功: ${barcode}`, 'success');
 
         if (navigator.vibrate) {
           navigator.vibrate(200);
@@ -48,28 +49,30 @@ export default function ScannerPage() {
 
         setTimeout(() => {
           if (scanning) {
-            showMessage('スキャン中...', 'info');
+            showMessage('📷 スキャン中...', 'info');
           }
         }, 2000);
 
         return true;
       } else {
-        showMessage(`エラー: ${data.error}`, 'error');
+        showMessage(`❌ エラー: ${data.error}`, 'error');
         return false;
       }
     } catch (error) {
       console.error('Send barcode error:', error);
-      showMessage('サーバーに接続できません', 'error');
+      showMessage('❌ サーバーに接続できません', 'error');
       return false;
     }
   };
 
   const startScanning = async () => {
     try {
-      showMessage('カメラを起動中...', 'info');
+      showMessage('📷 カメラを起動中...', 'info');
 
-      const qrCode = new Html5Qrcode('reader');
-      setHtml5QrCode(qrCode);
+      // Initialize Html5Qrcode if not already created
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode('reader');
+      }
 
       const config = {
         fps: 10,
@@ -85,36 +88,42 @@ export default function ScannerPage() {
         ],
       };
 
-      await qrCode.start(
+      await html5QrCodeRef.current.start(
         { facingMode: 'environment' },
         config,
         async (decodedText) => {
           console.log('Barcode detected:', decodedText);
           await sendBarcode(decodedText);
         },
-        () => {
-          // Ignore scanning errors
+        (errorMessage) => {
+          // Ignore scanning errors (these are frequent and expected)
+          console.debug('Scan error:', errorMessage);
         }
       );
 
       setScanning(true);
-      showMessage('スキャン中...', 'info');
-    } catch (error) {
+      showMessage('📷 スキャン中...', 'info');
+    } catch (error: any) {
       console.error('Start scanning error:', error);
-      showMessage(`カメラの起動に失敗しました`, 'error');
+      showMessage(`❌ カメラの起動に失敗: ${error.message || error}`, 'error');
       setScanning(false);
     }
   };
 
   const stopScanning = async () => {
-    if (html5QrCode && scanning) {
-      try {
-        await html5QrCode.stop();
-        setScanning(false);
-        showMessage('スキャンを停止しました', 'info');
-      } catch (error) {
-        console.error('Stop scanning error:', error);
-      }
+    if (!html5QrCodeRef.current) {
+      console.warn('No scanner to stop');
+      return;
+    }
+
+    try {
+      await html5QrCodeRef.current.stop();
+      setScanning(false);
+      showMessage('⏸️ スキャンを停止しました', 'info');
+    } catch (error: any) {
+      console.error('Stop scanning error:', error);
+      showMessage(`❌ 停止エラー: ${error.message || error}`, 'error');
+      setScanning(false);
     }
   };
 
@@ -139,7 +148,11 @@ export default function ScannerPage() {
             </div>
           )}
 
-          <div id="reader" className={`rounded-lg overflow-hidden mb-4 ${!scanning && 'hidden'}`} />
+          <div
+            id="reader"
+            className={`rounded-lg overflow-hidden mb-4 ${!scanning && 'hidden'}`}
+            style={{ minHeight: scanning ? '300px' : '0' }}
+          />
 
           <div className="space-y-3">
             {!scanning ? (
@@ -147,14 +160,14 @@ export default function ScannerPage() {
                 onClick={startScanning}
                 className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
               >
-                スキャン開始
+                📷 スキャン開始
               </button>
             ) : (
               <button
                 onClick={stopScanning}
                 className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
               >
-                スキャン停止
+                ⏸️ スキャン停止
               </button>
             )}
 
@@ -162,7 +175,7 @@ export default function ScannerPage() {
               onClick={() => (window.location.href = '/dashboard')}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
             >
-              ダッシュボードへ
+              📊 ダッシュボードへ
             </button>
           </div>
 
@@ -172,6 +185,15 @@ export default function ScannerPage() {
               <div className="text-sm text-gray-600 mt-1">今回のセッション</div>
             </div>
           )}
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white text-sm">
+          <p className="font-semibold mb-2">💡 ヒント:</p>
+          <ul className="space-y-1 list-disc list-inside">
+            <li>カメラの許可が必要です</li>
+            <li>バーコードを画面中央に合わせてください</li>
+            <li>明るい場所でスキャンしてください</li>
+          </ul>
         </div>
       </div>
     </div>
