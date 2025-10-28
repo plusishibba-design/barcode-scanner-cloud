@@ -9,7 +9,9 @@ export default function ScannerPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [sessionScans, setSessionScans] = useState(0);
   const [manualInput, setManualInput] = useState('');
+  const [flashSuccess, setFlashSuccess] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const lastScannedRef = useRef<{ barcode: string; timestamp: number } | null>(null);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -25,7 +27,21 @@ export default function ScannerPage() {
     setMessageType(type);
   };
 
-  const sendBarcode = async (barcode: string) => {
+  const sendBarcode = async (barcode: string, isFromCamera: boolean = false) => {
+    // カメラからのスキャンの場合、1秒以内の同じバーコードは無視
+    if (isFromCamera) {
+      const now = Date.now();
+      if (
+        lastScannedRef.current &&
+        lastScannedRef.current.barcode === barcode &&
+        now - lastScannedRef.current.timestamp < 1000
+      ) {
+        console.log('Same barcode within 1 second, ignoring');
+        return false;
+      }
+      lastScannedRef.current = { barcode, timestamp: now };
+    }
+
     try {
       const response = await fetch('/api/barcodes', {
         method: 'POST',
@@ -44,8 +60,34 @@ export default function ScannerPage() {
         setSessionScans((prev) => prev + 1);
         showMessage(`✅ 保存成功: ${barcode}`, 'success');
 
+        // 画面全体を緑色にフラッシュ
+        setFlashSuccess(true);
+        setTimeout(() => setFlashSuccess(false), 300);
+
+        // バイブレーション
         if (navigator.vibrate) {
-          navigator.vibrate(200);
+          navigator.vibrate([100, 50, 100]); // より強い振動パターン
+        }
+
+        // 音を鳴らす
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          oscillator.frequency.value = 800; // 高めの音
+          oscillator.type = 'sine';
+
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (audioError) {
+          console.log('Audio not supported:', audioError);
         }
 
         setTimeout(() => {
@@ -98,7 +140,7 @@ export default function ScannerPage() {
         config,
         async (decodedText) => {
           console.log('Barcode detected:', decodedText);
-          await sendBarcode(decodedText);
+          await sendBarcode(decodedText, true); // カメラからのスキャンであることを示す
         },
         (errorMessage) => {
           // Ignore scanning errors (these are frequent and expected)
@@ -153,7 +195,12 @@ export default function ScannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-900 p-5">
+    <div className={`min-h-screen bg-gradient-to-br from-purple-600 to-purple-900 p-5 transition-all duration-300 ${flashSuccess ? 'ring-8 ring-green-400' : ''}`}>
+      {/* 成功時の全画面フラッシュオーバーレイ */}
+      {flashSuccess && (
+        <div className="fixed inset-0 bg-green-500 opacity-30 pointer-events-none z-50 animate-pulse" />
+      )}
+
       <div className="max-w-2xl mx-auto">
         <div className="text-center text-white mb-8">
           <h1 className="text-3xl font-bold mb-2">バーコードスキャナー</h1>
