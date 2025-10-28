@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { Pool } from '@vercel/postgres';
 
 export interface Barcode {
   id: number;
@@ -8,9 +8,14 @@ export interface Barcode {
   created_at: Date;
 }
 
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+});
+
 export async function createBarcodesTable() {
+  const client = await pool.connect();
   try {
-    await sql`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS barcodes (
         id SERIAL PRIMARY KEY,
         barcode VARCHAR(255) NOT NULL,
@@ -18,52 +23,54 @@ export async function createBarcodesTable() {
         scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
     console.log('Barcodes table created successfully');
   } catch (error) {
     console.error('Error creating barcodes table:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
 export async function addBarcode(barcode: string, timestamp?: string) {
+  const client = await pool.connect();
   try {
-    const result = await sql`
-      INSERT INTO barcodes (barcode, timestamp)
-      VALUES (${barcode}, ${timestamp || new Date().toISOString()})
-      RETURNING *
-    `;
+    const result = await client.query(
+      'INSERT INTO barcodes (barcode, timestamp) VALUES ($1, $2) RETURNING *',
+      [barcode, timestamp || new Date().toISOString()]
+    );
     return result.rows[0];
   } catch (error) {
     console.error('Error adding barcode:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
 export async function getAllBarcodes() {
+  const client = await pool.connect();
   try {
-    const result = await sql`
-      SELECT * FROM barcodes
-      ORDER BY created_at DESC
-      LIMIT 1000
-    `;
+    const result = await client.query(
+      'SELECT * FROM barcodes ORDER BY created_at DESC LIMIT 1000'
+    );
     return result.rows;
   } catch (error) {
     console.error('Error getting barcodes:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
 export async function getBarcodeStats() {
+  const client = await pool.connect();
   try {
-    const totalResult = await sql`
-      SELECT COUNT(*) as total FROM barcodes
-    `;
-
-    const todayResult = await sql`
-      SELECT COUNT(*) as today FROM barcodes
-      WHERE DATE(created_at) = CURRENT_DATE
-    `;
+    const totalResult = await client.query('SELECT COUNT(*) as total FROM barcodes');
+    const todayResult = await client.query(
+      "SELECT COUNT(*) as today FROM barcodes WHERE DATE(created_at) = CURRENT_DATE"
+    );
 
     return {
       total: parseInt(totalResult.rows[0].total),
@@ -72,5 +79,7 @@ export async function getBarcodeStats() {
   } catch (error) {
     console.error('Error getting barcode stats:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
