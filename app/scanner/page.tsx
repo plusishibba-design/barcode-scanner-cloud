@@ -151,7 +151,11 @@ export default function ScannerPage() {
           <div
             id="reader"
             className={`rounded-lg overflow-hidden mb-4 ${!scanning && 'hidden'}`}
-            style={{ minHeight: scanning ? '300px' : '0' }}
+            style={{
+              minHeight: scanning ? '400px' : '0',
+              width: '100%',
+              display: scanning ? 'block' : 'none',
+            }}
           />
 
           <div className="space-y-3">
