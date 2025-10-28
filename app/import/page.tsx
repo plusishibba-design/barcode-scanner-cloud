@@ -7,6 +7,7 @@ export default function ImportPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
+  const [productCount, setProductCount] = useState<number | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

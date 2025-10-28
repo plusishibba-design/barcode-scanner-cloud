@@ -36,6 +36,18 @@ export async function createBarcodesTable() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add product_description column if it doesn't exist (for existing tables)
+    try {
+      await client.query(`
+        ALTER TABLE barcodes
+        ADD COLUMN IF NOT EXISTS product_description TEXT
+      `);
+    } catch (alterError) {
+      // Column might already exist, ignore error
+      console.log('product_description column already exists or could not be added');
+    }
+
     console.log('Barcodes table created successfully');
   } catch (error) {
     console.error('Error creating barcodes table:', error);
