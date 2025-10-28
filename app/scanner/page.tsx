@@ -16,6 +16,7 @@ export default function ScannerPage() {
   const [flashSuccess, setFlashSuccess] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [scannedData, setScannedData] = useState<{ barcode: string; productName?: string; time: string } | null>(null);
+  const [loadingProductName, setLoadingProductName] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const lastScannedRef = useRef<{ barcode: string; timestamp: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -58,6 +59,57 @@ export default function ScannerPage() {
       lastScannedRef.current = { barcode, timestamp: now };
     }
 
+    // Stop scanning immediately if from camera
+    if (isFromCamera) {
+      await stopScanning();
+    }
+
+    // Show modal immediately with loading state
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    setScannedData({
+      barcode,
+      productName: undefined,
+      time: timeString
+    });
+    setShowModal(true);
+    setLoadingProductName(true);
+
+    // Flash and vibration
+    setFlashSuccess(true);
+    setTimeout(() => setFlashSuccess(false), 300);
+
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+
+    // Play sound
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (audioError) {
+      console.log('Audio not supported:', audioError);
+    }
+
+    // Now fetch product info from database
     try {
       const response = await fetch('/api/barcodes', {
         method: 'POST',
@@ -75,63 +127,24 @@ export default function ScannerPage() {
       if (data.success) {
         setSessionScans((prev) => prev + 1);
 
-        // Stop scanning if from camera
-        if (isFromCamera) {
-          await stopScanning();
-        }
-
-        // Show modal with scan result
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-
+        // Update modal with product name
         setScannedData({
           barcode,
           productName: data.productDescription,
           time: timeString
         });
-        setShowModal(true);
-
-        // Flash and vibration
-        setFlashSuccess(true);
-        setTimeout(() => setFlashSuccess(false), 300);
-
-        if (navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]);
-        }
-
-        // Play sound
-        try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          oscillator.frequency.value = 800;
-          oscillator.type = 'sine';
-
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.2);
-        } catch (audioError) {
-          console.log('Audio not supported:', audioError);
-        }
+        setLoadingProductName(false);
 
         return true;
       } else {
-        showMessage(`❌ エラー: ${data.error}`, 'error');
+        setLoadingProductName(false);
+        showMessage(`Error: ${data.error}`, 'error');
         return false;
       }
     } catch (error) {
       console.error('Send barcode error:', error);
-      showMessage('❌ サーバーに接続できません', 'error');
+      setLoadingProductName(false);
+      showMessage('Cannot connect to server', 'error');
       return false;
     }
   };
@@ -481,12 +494,18 @@ export default function ScannerPage() {
                 <div className="text-2xl font-bold font-mono text-black">{scannedData.barcode}</div>
               </div>
 
-              {scannedData.productName && (
-                <div className="border-2 border-black p-4">
-                  <div className="text-sm text-gray-600 mb-1">Product Name</div>
+              <div className="border-2 border-black p-4">
+                <div className="text-sm text-gray-600 mb-1">Product Name</div>
+                {loadingProductName ? (
+                  <div className="flex items-center justify-center py-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-black border-t-transparent"></div>
+                  </div>
+                ) : scannedData.productName ? (
                   <div className="text-lg text-black">{scannedData.productName}</div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-lg text-gray-400 italic">No product info</div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
