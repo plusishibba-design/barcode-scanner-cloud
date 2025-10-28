@@ -106,7 +106,8 @@ export default function DashboardPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="text-left p-3 font-semibold text-gray-700">バーコード</th>
+                    <th className="text-left p-3 font-semibold text-gray-700">製品番号</th>
+                    <th className="text-left p-3 font-semibold text-gray-700">製品名</th>
                     <th className="text-left p-3 font-semibold text-gray-700">スキャン日時</th>
                   </tr>
                 </thead>
@@ -114,6 +115,11 @@ export default function DashboardPage() {
                   {barcodes.slice(0, 100).map((barcode) => (
                     <tr key={barcode.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="p-3 font-mono font-bold text-gray-800">{barcode.barcode}</td>
+                      <td className="p-3 text-gray-700">
+                        {(barcode as any).product_description || (
+                          <span className="text-gray-400 italic">製品情報なし</span>
+                        )}
+                      </td>
                       <td className="p-3 text-gray-600 text-sm">{formatDate(barcode.created_at)}</td>
                     </tr>
                   ))}

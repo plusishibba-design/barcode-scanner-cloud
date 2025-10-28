@@ -6,6 +6,13 @@ export interface Barcode {
   timestamp: string;
   scanned_at: Date;
   created_at: Date;
+  product_description?: string;
+}
+
+export interface Product {
+  part_num: string;
+  part_description: string;
+  created_at: Date;
 }
 
 // Create a connection pool
@@ -24,6 +31,7 @@ export async function createBarcodesTable() {
         id SERIAL PRIMARY KEY,
         barcode VARCHAR(255) NOT NULL,
         timestamp VARCHAR(50),
+        product_description TEXT,
         scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -37,16 +45,90 @@ export async function createBarcodesTable() {
   }
 }
 
-export async function addBarcode(barcode: string, timestamp?: string) {
+export async function createProductsTable() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        part_num VARCHAR(255) PRIMARY KEY,
+        part_description TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Products table created successfully');
+  } catch (error) {
+    console.error('Error creating products table:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getProduct(partNum: string): Promise<Product | null> {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      'INSERT INTO barcodes (barcode, timestamp) VALUES ($1, $2) RETURNING *',
-      [barcode, timestamp || new Date().toISOString()]
+      'SELECT * FROM products WHERE part_num = $1',
+      [partNum]
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Error getting product:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function addBarcode(barcode: string, timestamp?: string, productDescription?: string) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'INSERT INTO barcodes (barcode, timestamp, product_description) VALUES ($1, $2, $3) RETURNING *',
+      [barcode, timestamp || new Date().toISOString(), productDescription]
     );
     return result.rows[0];
   } catch (error) {
     console.error('Error adding barcode:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function addProduct(partNum: string, partDescription: string) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'INSERT INTO products (part_num, part_description) VALUES ($1, $2) ON CONFLICT (part_num) DO UPDATE SET part_description = $2 RETURNING *',
+      [partNum, partDescription]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error adding product:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function bulkInsertProducts(products: { partNum: string; partDescription: string }[]) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const product of products) {
+      await client.query(
+        'INSERT INTO products (part_num, part_description) VALUES ($1, $2) ON CONFLICT (part_num) DO UPDATE SET part_description = $2',
+        [product.partNum, product.partDescription]
+      );
+    }
+
+    await client.query('COMMIT');
+    return { success: true, count: products.length };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error bulk inserting products:', error);
     throw error;
   } finally {
     client.release();

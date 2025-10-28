@@ -72,7 +72,13 @@ export default function ScannerPage() {
 
       if (data.success) {
         setSessionScans((prev) => prev + 1);
-        showMessage(`✅ 保存成功: ${barcode}`, 'success');
+
+        // 製品名がある場合は表示
+        const displayMessage = data.productDescription
+          ? `✅ ${barcode}\n${data.productDescription}`
+          : `✅ 保存成功: ${barcode}`;
+
+        showMessage(displayMessage, 'success');
 
         // 画面全体を緑色にフラッシュ
         setFlashSuccess(true);

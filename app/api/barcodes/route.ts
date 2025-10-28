@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addBarcode, getAllBarcodes, createBarcodesTable } from '@/lib/db';
+import { addBarcode, getAllBarcodes, createBarcodesTable, getProduct } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -36,12 +36,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await addBarcode(barcode, timestamp);
+    // 製品マスターから製品情報を取得
+    let productDescription: string | undefined;
+    try {
+      const product = await getProduct(barcode);
+      if (product) {
+        productDescription = product.part_description;
+      }
+    } catch (error) {
+      console.log('Product not found in master data:', barcode);
+    }
+
+    const result = await addBarcode(barcode, timestamp, productDescription);
 
     return NextResponse.json({
       success: true,
       message: 'Barcode saved successfully',
       data: result,
+      productDescription,
     });
   } catch (error: any) {
     console.error('POST /api/barcodes error:', error);
