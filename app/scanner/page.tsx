@@ -8,6 +8,7 @@ export default function ScannerPage() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [sessionScans, setSessionScans] = useState(0);
+  const [manualInput, setManualInput] = useState('');
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
@@ -131,6 +132,20 @@ export default function ScannerPage() {
     }
   };
 
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualInput.trim()) {
+      showMessage('❌ バーコードを入力してください', 'error');
+      return;
+    }
+
+    showMessage('⏳ 送信中...', 'info');
+    const success = await sendBarcode(manualInput.trim());
+    if (success) {
+      setManualInput('');
+    }
+  };
+
   const messageColors = {
     success: 'bg-green-100 text-green-800 border-green-300',
     error: 'bg-red-100 text-red-800 border-red-300',
@@ -185,6 +200,28 @@ export default function ScannerPage() {
             >
               📊 ダッシュボードへ
             </button>
+          </div>
+
+          {/* 手動入力セクション */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">
+              ✏️ 手動入力（テスト用）
+            </h3>
+            <form onSubmit={handleManualSubmit} className="space-y-3">
+              <input
+                type="text"
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                placeholder="バーコード番号を入力"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
+              />
+              <button
+                type="submit"
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105"
+              >
+                💾 手動で保存
+              </button>
+            </form>
           </div>
 
           {sessionScans > 0 && (
