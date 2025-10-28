@@ -1,4 +1,4 @@
-import { Pool } from '@vercel/postgres';
+import { db } from '@vercel/postgres';
 
 export interface Barcode {
   id: number;
@@ -8,12 +8,8 @@ export interface Barcode {
   created_at: Date;
 }
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-});
-
 export async function createBarcodesTable() {
-  const client = await pool.connect();
+  const client = await db.connect();
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS barcodes (
@@ -34,7 +30,7 @@ export async function createBarcodesTable() {
 }
 
 export async function addBarcode(barcode: string, timestamp?: string) {
-  const client = await pool.connect();
+  const client = await db.connect();
   try {
     const result = await client.query(
       'INSERT INTO barcodes (barcode, timestamp) VALUES ($1, $2) RETURNING *',
@@ -50,7 +46,7 @@ export async function addBarcode(barcode: string, timestamp?: string) {
 }
 
 export async function getAllBarcodes() {
-  const client = await pool.connect();
+  const client = await db.connect();
   try {
     const result = await client.query(
       'SELECT * FROM barcodes ORDER BY created_at DESC LIMIT 1000'
@@ -65,7 +61,7 @@ export async function getAllBarcodes() {
 }
 
 export async function getBarcodeStats() {
-  const client = await pool.connect();
+  const client = await db.connect();
   try {
     const totalResult = await client.query('SELECT COUNT(*) as total FROM barcodes');
     const todayResult = await client.query(
