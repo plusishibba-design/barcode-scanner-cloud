@@ -18,13 +18,13 @@ export default function ImportPage() {
 
   const handleImport = async () => {
     if (!file) {
-      setMessage('❌ ファイルを選択してください');
+      setMessage('Please select a file');
       setMessageType('error');
       return;
     }
 
     setLoading(true);
-    setMessage('⏳ CSVを読み込み中...');
+    setMessage('Reading CSV file...');
     setMessageType('info');
 
     try {
@@ -32,7 +32,7 @@ export default function ImportPage() {
       const lines = text.split('\n');
       const products = [];
 
-      // ヘッダー行をスキップ
+      // Skip header row
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
@@ -46,7 +46,7 @@ export default function ImportPage() {
         }
       }
 
-      setMessage(`⏳ ${products.length}件の製品をインポート中...`);
+      setMessage(`Importing ${products.length} products...`);
 
       const response = await fetch('/api/products/import', {
         method: 'POST',
@@ -59,15 +59,22 @@ export default function ImportPage() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage(`✅ ${data.count}件の製品をインポートしました`);
+        const stats = [
+          `Total: ${data.total}`,
+          `New: ${data.inserted}`,
+          `Updated: ${data.updated}`,
+          data.skipped > 0 ? `Skipped: ${data.skipped}` : null
+        ].filter(Boolean).join(' | ');
+
+        setMessage(`Import complete - ${stats}`);
         setMessageType('success');
         setFile(null);
       } else {
-        setMessage(`❌ エラー: ${data.error}`);
+        setMessage(`Error: ${data.error}`);
         setMessageType('error');
       }
     } catch (error: any) {
-      setMessage(`❌ エラー: ${error.message}`);
+      setMessage(`Error: ${error.message}`);
       setMessageType('error');
     } finally {
       setLoading(false);

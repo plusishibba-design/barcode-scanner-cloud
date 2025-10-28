@@ -147,6 +147,56 @@ export async function bulkInsertProducts(products: { partNum: string; partDescri
   }
 }
 
+export async function bulkInsertProductsWithStats(
+  products: { partNum: string; partDescription: string }[]
+) {
+  const client = await pool.connect();
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  try {
+    await client.query('BEGIN');
+
+    for (const product of products) {
+      try {
+        const result = await client.query(
+          `INSERT INTO products (part_num, part_description)
+           VALUES ($1, $2)
+           ON CONFLICT (part_num) DO UPDATE
+           SET part_description = $2
+           RETURNING (xmax = 0) AS inserted`,
+          [product.partNum, product.partDescription]
+        );
+
+        if (result.rows[0].inserted) {
+          inserted++;
+        } else {
+          updated++;
+        }
+      } catch (error) {
+        console.error('Error inserting product:', product.partNum, error);
+        skipped++;
+      }
+    }
+
+    await client.query('COMMIT');
+    return {
+      success: true,
+      total: products.length,
+      inserted,
+      updated,
+      skipped
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error bulk inserting products:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getAllBarcodes() {
   const client = await pool.connect();
   try {
