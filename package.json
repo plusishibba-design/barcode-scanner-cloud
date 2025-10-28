@@ -13,12 +13,14 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@vercel/postgres": "^0.10.0",
+    "pg": "^8.11.3",
     "html5-qrcode": "^2.3.8"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/pg": "^8.10.9",
     "typescript": "^5",
     "eslint": "^9",
     "eslint-config-next": "^15.1.4",
