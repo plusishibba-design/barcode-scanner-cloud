@@ -303,49 +303,49 @@ export default function ScannerPage() {
   };
 
   const messageColors = {
-    success: 'bg-green-100 text-green-800 border-green-300',
-    error: 'bg-red-100 text-red-800 border-red-300',
-    info: 'bg-blue-100 text-blue-800 border-blue-300',
+    success: 'bg-white text-black border-2 border-black',
+    error: 'bg-black text-white border-2 border-black',
+    info: 'bg-gray-100 text-black border-2 border-gray-300',
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-purple-600 to-purple-900 p-5 transition-all duration-300 ${flashSuccess ? 'ring-8 ring-green-400' : ''}`}>
-      {/* 成功時の全画面フラッシュオーバーレイ */}
+    <div className={`min-h-screen bg-white p-5 transition-all duration-300 ${flashSuccess ? 'ring-4 ring-black' : ''}`}>
+      {/* Success flash overlay */}
       {flashSuccess && (
-        <div className="fixed inset-0 bg-green-500 opacity-30 pointer-events-none z-50 animate-pulse" />
+        <div className="fixed inset-0 bg-black opacity-10 pointer-events-none z-50" />
       )}
 
       <div className="max-w-2xl mx-auto">
-        <div className="text-center text-white mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {scanMode === 'barcode' ? 'バーコードスキャナー' : 'OCR文字認識'}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2 text-black">
+            {scanMode === 'barcode' ? 'Barcode Scanner' : 'OCR Reader'}
           </h1>
-          <p>{scanMode === 'barcode' ? 'カメラでバーコードを読み取ります' : 'XX-XXX形式の製品番号を認識します'}</p>
+          <p className="text-gray-600">{scanMode === 'barcode' ? 'Scan barcodes with camera' : 'Recognize XX-XXX format product numbers'}</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-5">
-          {/* モード切り替えボタン */}
+        <div className="bg-white border-2 border-black p-6 mb-5">
+          {/* Mode toggle buttons */}
           {!scanning && (
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setScanMode('barcode')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
+                className={`flex-1 py-3 px-4 border-2 border-black font-semibold transition-all ${
                   scanMode === 'barcode'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-gray-100'
                 }`}
               >
-                📊 バーコード
+                Barcode
               </button>
               <button
                 onClick={() => setScanMode('ocr')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
+                className={`flex-1 py-3 px-4 border-2 border-black font-semibold transition-all ${
                   scanMode === 'ocr'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-gray-100'
                 }`}
               >
-                🔍 OCR (XX-XXX)
+                OCR (XX-XXX)
               </button>
             </div>
           )}
@@ -367,17 +367,17 @@ export default function ScannerPage() {
             }}
           />
 
-          {/* OCRスキャナー用 */}
+          {/* OCR Scanner */}
           {scanMode === 'ocr' && scanning && (
-            <div className="relative rounded-lg overflow-hidden mb-4">
+            <div className="relative overflow-hidden mb-4 border-2 border-black">
               <video
                 ref={videoRef}
-                className="w-full h-auto rounded-lg"
+                className="w-full h-auto"
                 playsInline
                 muted
               />
               <canvas ref={canvasRef} className="hidden" />
-              <div className="absolute inset-0 border-4 border-purple-500 pointer-events-none" />
+              <div className="absolute inset-0 border-4 border-black pointer-events-none" />
             </div>
           )}
 
@@ -385,73 +385,73 @@ export default function ScannerPage() {
             {!scanning ? (
               <button
                 onClick={scanMode === 'barcode' ? startScanning : startOcrScanning}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
+                className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-4 px-6 border-2 border-black transition-all"
               >
-                {scanMode === 'barcode' ? '📷 スキャン開始' : '🔍 OCR開始'}
+                {scanMode === 'barcode' ? 'Start Scanning' : 'Start OCR'}
               </button>
             ) : (
               <button
                 onClick={stopScanning}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
+                className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-4 px-6 border-2 border-black transition-all"
               >
-                ⏸️ スキャン停止
+                Stop Scanning
               </button>
             )}
 
             <button
               onClick={() => (window.location.href = '/dashboard')}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105"
+              className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-4 px-6 border-2 border-black transition-all"
             >
-              📊 ダッシュボードへ
+              Dashboard
             </button>
           </div>
 
-          {/* 手動入力セクション */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">
-              ✏️ 手動入力（テスト用）
+          {/* Manual Input */}
+          <div className="mt-6 pt-6 border-t-2 border-black">
+            <h3 className="text-lg font-semibold text-black mb-3 text-center">
+              Manual Input (Test)
             </h3>
             <form onSubmit={handleManualSubmit} className="space-y-3">
               <input
                 type="text"
                 value={manualInput}
                 onChange={(e) => setManualInput(e.target.value)}
-                placeholder="バーコード番号を入力"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
+                placeholder="Enter product number"
+                className="w-full px-4 py-3 border-2 border-black focus:outline-none text-lg"
               />
               <button
                 type="submit"
-                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105"
+                className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 px-6 border-2 border-black transition-all"
               >
-                💾 手動で保存
+                Save Manually
               </button>
             </form>
           </div>
 
           {sessionScans > 0 && (
             <div className="mt-6 text-center">
-              <div className="text-3xl font-bold text-green-600">{sessionScans}</div>
-              <div className="text-sm text-gray-600 mt-1">今回のセッション</div>
+              <div className="text-3xl font-bold text-black">{sessionScans}</div>
+              <div className="text-sm text-gray-600 mt-1">Scans This Session</div>
             </div>
           )}
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white text-sm">
-          <p className="font-semibold mb-2">💡 ヒント:</p>
+        <div className="bg-white border-2 border-black p-4 text-black text-sm">
+          <p className="font-semibold mb-2">Tips:</p>
           {scanMode === 'barcode' ? (
             <ul className="space-y-1 list-disc list-inside">
-              <li>カメラの許可が必要です</li>
-              <li>バーコードを画面中央に合わせてください</li>
-              <li>明るい場所でスキャンしてください</li>
-              <li>同じバーコードは1秒間無視されます</li>
+              <li>Camera permission required</li>
+              <li>Align barcode in center of frame</li>
+              <li>Scan in well-lit environment</li>
+              <li>Duplicate scans ignored for 1 second</li>
             </ul>
           ) : (
             <ul className="space-y-1 list-disc list-inside">
-              <li>カメラの許可が必要です</li>
-              <li>XX-XXX形式（例：49-789）の製品番号のみ認識します</li>
-              <li>文字がはっきり見えるように近づけてください</li>
-              <li>明るい場所で、文字が鮮明に写るようにしてください</li>
-              <li>認識に数秒かかる場合があります</li>
+              <li>Camera permission required</li>
+              <li>Only recognizes XX-XXX format (e.g., 49-789)</li>
+              <li>Keep text clear and in focus</li>
+              <li>Scan in well-lit environment</li>
+              <li>Recognition may take a few seconds</li>
             </ul>
           )}
         </div>

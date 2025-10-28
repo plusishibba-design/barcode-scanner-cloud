@@ -74,45 +74,45 @@ export default function ImportPage() {
   };
 
   const messageColors = {
-    success: 'bg-green-100 text-green-800 border-green-300',
-    error: 'bg-red-100 text-red-800 border-red-300',
-    info: 'bg-blue-100 text-blue-800 border-blue-300',
+    success: 'bg-white text-black border-2 border-black',
+    error: 'bg-black text-white border-2 border-black',
+    info: 'bg-gray-100 text-black border-2 border-gray-300',
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 p-5">
+    <div className="min-h-screen bg-white p-5">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center text-white mb-8">
-          <h1 className="text-3xl font-bold mb-2">製品マスターインポート</h1>
-          <p>CSVファイルから製品情報を読み込みます</p>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2 text-black">Import Product Master</h1>
+          <p className="text-gray-600">Load product data from CSV file</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-5">
+        <div className="bg-white border-2 border-black p-6 mb-5">
           {message && (
-            <div className={`p-4 rounded-lg border mb-4 text-center font-semibold ${messageColors[messageType]}`}>
+            <div className={`p-4 border mb-4 text-center font-semibold ${messageColors[messageType]}`}>
               {message}
             </div>
           )}
 
           <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-2">CSVファイルを選択</label>
+            <label className="block text-black font-semibold mb-2">Select CSV File</label>
             <input
               type="file"
               accept=".csv"
               onChange={handleFileChange}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+              className="w-full px-4 py-3 border-2 border-black focus:outline-none"
               disabled={loading}
             />
             {file && (
               <div className="mt-2 text-sm text-gray-600">
-                選択中: {file.name}
+                Selected: {file.name}
               </div>
             )}
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <p className="font-semibold text-gray-700 mb-2">📋 CSV形式:</p>
-            <pre className="text-sm text-gray-600 bg-white p-3 rounded border">
+          <div className="bg-gray-50 border-2 border-black p-4 mb-6">
+            <p className="font-semibold text-black mb-2">CSV Format:</p>
+            <pre className="text-sm text-black bg-white p-3 border-2 border-black font-mono">
 {`PartNum,PartDescription
 00-001,WH-PAL 5mm BL -Bulk Otsuka
 100-V001,VN WH-A 5mm PIKACHU YELLOW 1P`}
@@ -122,34 +122,34 @@ export default function ImportPage() {
           <button
             onClick={handleImport}
             disabled={loading || !file}
-            className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-4 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-4 px-6 border-2 border-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '⏳ インポート中...' : '📥 インポート開始'}
+            {loading ? 'Importing...' : 'Start Import'}
           </button>
 
           <div className="mt-4 space-y-2">
             <button
               onClick={() => (window.location.href = '/scanner')}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+              className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-3 px-6 border-2 border-black transition-all"
             >
-              📷 スキャナーへ
+              Scanner
             </button>
             <button
               onClick={() => (window.location.href = '/dashboard')}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+              className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-3 px-6 border-2 border-black transition-all"
             >
-              📊 ダッシュボードへ
+              Dashboard
             </button>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white text-sm">
-          <p className="font-semibold mb-2">💡 使い方:</p>
+        <div className="bg-white border-2 border-black p-4 text-black text-sm">
+          <p className="font-semibold mb-2">Instructions:</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>CSV形式: PartNum,PartDescription</li>
-            <li>1行目はヘッダー（スキップされます）</li>
-            <li>既存の製品番号は上書きされます</li>
-            <li>インポート後、スキャン時に製品名が表示されます</li>
+            <li>CSV format: PartNum,PartDescription</li>
+            <li>First row is header (will be skipped)</li>
+            <li>Existing product numbers will be updated</li>
+            <li>Product names will appear when scanning</li>
           </ul>
         </div>
       </div>
