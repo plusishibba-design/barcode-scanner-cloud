@@ -14,6 +14,8 @@ export default function ScannerPage() {
   const [sessionScans, setSessionScans] = useState(0);
   const [manualInput, setManualInput] = useState('');
   const [flashSuccess, setFlashSuccess] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [scannedData, setScannedData] = useState<{ barcode: string; productName?: string; time: string } | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const lastScannedRef = useRef<{ barcode: string; timestamp: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -73,23 +75,35 @@ export default function ScannerPage() {
       if (data.success) {
         setSessionScans((prev) => prev + 1);
 
-        // 製品名がある場合は表示
-        const displayMessage = data.productDescription
-          ? `✅ ${barcode}\n${data.productDescription}`
-          : `✅ 保存成功: ${barcode}`;
+        // Stop scanning if from camera
+        if (isFromCamera) {
+          await stopScanning();
+        }
 
-        showMessage(displayMessage, 'success');
+        // Show modal with scan result
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
 
-        // 画面全体を緑色にフラッシュ
+        setScannedData({
+          barcode,
+          productName: data.productDescription,
+          time: timeString
+        });
+        setShowModal(true);
+
+        // Flash and vibration
         setFlashSuccess(true);
         setTimeout(() => setFlashSuccess(false), 300);
 
-        // バイブレーション
         if (navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]); // より強い振動パターン
+          navigator.vibrate([100, 50, 100]);
         }
 
-        // 音を鳴らす
+        // Play sound
         try {
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
           const oscillator = audioContext.createOscillator();
@@ -98,7 +112,7 @@ export default function ScannerPage() {
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
 
-          oscillator.frequency.value = 800; // 高めの音
+          oscillator.frequency.value = 800;
           oscillator.type = 'sine';
 
           gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
@@ -109,12 +123,6 @@ export default function ScannerPage() {
         } catch (audioError) {
           console.log('Audio not supported:', audioError);
         }
-
-        setTimeout(() => {
-          if (scanning) {
-            showMessage('📷 スキャン中...', 'info');
-          }
-        }, 2000);
 
         return true;
       } else {
@@ -456,6 +464,51 @@ export default function ScannerPage() {
           )}
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showModal && scannedData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white border-4 border-black max-w-md w-full p-8">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">✓</div>
+              <h2 className="text-2xl font-bold text-black mb-2">Scan Successful</h2>
+              <p className="text-sm text-gray-600">{scannedData.time}</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="border-2 border-black p-4">
+                <div className="text-sm text-gray-600 mb-1">Product Number</div>
+                <div className="text-2xl font-bold font-mono text-black">{scannedData.barcode}</div>
+              </div>
+
+              {scannedData.productName && (
+                <div className="border-2 border-black p-4">
+                  <div className="text-sm text-gray-600 mb-1">Product Name</div>
+                  <div className="text-lg text-black">{scannedData.productName}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setScannedData(null);
+                }}
+                className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-4 px-6 border-2 border-black transition-all"
+              >
+                Scan Next
+              </button>
+              <button
+                onClick={() => (window.location.href = '/dashboard')}
+                className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-3 px-6 border-2 border-black transition-all"
+              >
+                View Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
