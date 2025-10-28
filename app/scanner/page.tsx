@@ -218,19 +218,25 @@ export default function ScannerPage() {
     try {
       showMessage('📷 カメラを起動中...', 'info');
 
+      // 先にscanningをtrueにしてビデオ要素をレンダリング
+      setScanning(true);
+
+      // 少し待ってからビデオ要素にアクセス
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
       });
 
       if (!videoRef.current) {
         showMessage('❌ ビデオ要素が見つかりません', 'error');
+        setScanning(false);
         return;
       }
 
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
 
-      setScanning(true);
       showMessage('🔍 OCRスキャン中...', 'info');
 
       // Tesseract worker を作成
