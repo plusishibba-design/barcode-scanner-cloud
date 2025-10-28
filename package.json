@@ -14,7 +14,8 @@
     "react-dom": "^19.0.0",
     "@vercel/postgres": "^0.10.0",
     "pg": "^8.11.3",
-    "html5-qrcode": "^2.3.8"
+    "html5-qrcode": "^2.3.8",
+    "tesseract.js": "^5.0.4"
   },
   "devDependencies": {
     "@types/node": "^20",
