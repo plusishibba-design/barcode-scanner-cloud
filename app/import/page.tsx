@@ -46,33 +46,64 @@ export default function ImportPage() {
         }
       }
 
-      setMessage(`Importing ${products.length} products...`);
-
-      const response = await fetch('/api/products/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ products }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        const stats = [
-          `Total: ${data.total}`,
-          `New: ${data.inserted}`,
-          `Updated: ${data.updated}`,
-          data.skipped > 0 ? `Skipped: ${data.skipped}` : null
-        ].filter(Boolean).join(' | ');
-
-        setMessage(`Import complete - ${stats}`);
-        setMessageType('success');
-        setFile(null);
-      } else {
-        setMessage(`Error: ${data.error}`);
-        setMessageType('error');
+      // Split into batches to avoid timeout (100 products per batch)
+      const BATCH_SIZE = 100;
+      const batches = [];
+      for (let i = 0; i < products.length; i += BATCH_SIZE) {
+        batches.push(products.slice(i, i + BATCH_SIZE));
       }
+
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let processedCount = 0;
+
+      // Process each batch
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        processedCount += batch.length;
+
+        setMessage(`Importing ${processedCount} / ${products.length} products...`);
+        setMessageType('info');
+
+        try {
+          const response = await fetch('/api/products/import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ products: batch }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            totalInserted += data.inserted;
+            totalUpdated += data.updated;
+            totalSkipped += data.skipped;
+          } else {
+            console.error(`Batch ${i + 1} failed:`, data.error);
+            totalSkipped += batch.length;
+          }
+        } catch (error) {
+          console.error(`Batch ${i + 1} error:`, error);
+          totalSkipped += batch.length;
+        }
+
+        // Small delay to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const stats = [
+        `Total: ${products.length}`,
+        `New: ${totalInserted}`,
+        `Updated: ${totalUpdated}`,
+        totalSkipped > 0 ? `Skipped: ${totalSkipped}` : null
+      ].filter(Boolean).join(' | ');
+
+      setMessage(`Import complete - ${stats}`);
+      setMessageType('success');
+      setFile(null);
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
       setMessageType('error');
